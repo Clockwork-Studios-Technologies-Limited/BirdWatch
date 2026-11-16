@@ -87,7 +87,7 @@ public final class TelemetryEvent {
         return v instanceof Number n ? n.longValue() : defaultValue;
     }
 
-    // 5. Gabriella contributed this code: added background event detection
+    // 5. Jibril contributed this code: added background event detection
     /**
      * Indicates whether the event is explicitly marked as background-generated.
      *
