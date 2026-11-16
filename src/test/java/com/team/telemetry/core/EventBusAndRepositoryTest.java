@@ -14,9 +14,23 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests for {@link EventBus} and {@link InMemoryEventRepository}.
+ *
+ * <p>Verifies event distribution to subscribers, exception handling during
+ * event publication, subscriber removal, null subscriber validation,
+ * and event storage and retrieval through the in-memory repository.
+ */
 class EventBusAndRepositoryTest {
     private final TelemetryEventFactory factory = new TelemetryEventFactory(new MutableClock());
 
+    /**
+     * Tests that publishing an event delivers it to all registered
+     * subscribers.
+     *
+     * <p>Also verifies that the event bus correctly reports the number
+     * of registered subscribers.
+     */
     @Test
     void publishDeliversToAllSubscribers() {
         EventBus bus = new EventBus();
@@ -32,6 +46,10 @@ class EventBusAndRepositoryTest {
         assertEquals(2, bus.subscriberCount());
     }
 
+    /**
+     * Tests that an exception thrown by one subscriber does not prevent
+     * other subscribers from receiving the published event.
+     */
     @Test
     void failingSubscriberDoesNotBlockOthers() {
         EventBus bus = new EventBus();
@@ -44,6 +62,10 @@ class EventBusAndRepositoryTest {
         assertEquals(1, received.size());
     }
 
+    /**
+     * Tests that a subscriber removed from the event bus no longer
+     * receives published events.
+     */
     @Test
     void unsubscribedListenerReceivesNothing() {
         EventBus bus = new EventBus();
@@ -55,11 +77,21 @@ class EventBusAndRepositoryTest {
         assertTrue(received.isEmpty());
     }
 
+    /**
+     * Tests that attempting to register a null subscriber throws
+     * a {@link NullPointerException}.
+     */
     @Test
     void nullSubscriberRejected() {
         assertThrows(NullPointerException.class, () -> new EventBus().subscribe(null));
     }
 
+    /**
+     * Tests that the in-memory event repository stores published events
+     * in chronological insertion order and supports filtering by event type.
+     *
+     * <p>Also verifies that clearing the repository removes all stored events.
+     */
     @Test
     void repositoryStoresInOrderFiltersByTypeAndClears() {
         InMemoryEventRepository repo = new InMemoryEventRepository();

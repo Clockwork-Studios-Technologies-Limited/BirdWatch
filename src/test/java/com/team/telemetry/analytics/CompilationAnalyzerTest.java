@@ -10,9 +10,24 @@ import com.team.telemetry.core.event.TelemetryEvent;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+
+/**
+ * Tests for {@link CompilationAnalyzer}.
+ *
+ * <p>Verifies compilation statistics, including attempt counts, success rates,
+ * warning counts, error frequencies, and the handling of background compilation
+ * events and missing error codes.
+ */
 class CompilationAnalyzerTest {
     private final CompilationAnalyzer analyzer = new CompilationAnalyzer();
 
+    /**
+     * Tests compilation attempt counts, success rates, error counts, and error
+     * frequency ordering.
+     *
+     * <p>Verifies that BlueJ background compilation events are excluded from
+     * the analysis.
+     */
     @Test
     void countsAttemptsSuccessRateAndSortsErrorFrequency() {
         List<TelemetryEvent> events = List.of(
@@ -43,6 +58,10 @@ class CompilationAnalyzerTest {
         assertEquals(1, s.errorFrequency().get("B"));
     }
 
+    /**
+     * Tests that analyzing an empty event list returns zero compilation
+     * statistics and does not produce NaN values.
+     */
     @Test
     void noCompilationsGivesZeroRatesNotNaN() {
         CompilationSummary s = analyzer.analyze(List.of());
@@ -52,6 +71,10 @@ class CompilationAnalyzerTest {
         assertTrue(s.errorFrequency().isEmpty());
     }
 
+    /**
+     * Tests that error codes with equal frequencies are sorted
+     * alphabetically.
+     */
     @Test
     void tiesInFrequencyAreOrderedByCode() {
         CompilationSummary s = analyzer.analyze(List.of(
@@ -60,12 +83,20 @@ class CompilationAnalyzerTest {
         assertEquals(List.of("a", "b"), List.copyOf(s.errorFrequency().keySet()));
     }
 
+    /**
+     * Tests that compilation errors without an associated error code
+     * are counted under the default unknown error code.
+     */
     @Test
     void missingCodeIsCountedAsUnknown() {
         CompilationSummary s = analyzer.analyze(List.of(at(1, EventType.COMPILE_ERROR)));
         assertEquals(1, s.errorFrequency().get("compiler.err.unknown"));
     }
 
+    /**
+     * Tests that a compilation summary containing only failed attempts
+     * reports a zero success rate.
+     */
     @Test
     void allFailuresGiveZeroSuccessRate() {
         CompilationSummary s = analyzer.analyze(List.of(

@@ -15,9 +15,23 @@ import java.nio.file.Path;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
+/**
+ * Tests for {@link JsonSerialiser}.
+ *
+ * <p>Verifies that report data is correctly converted into JSON,
+ * follows the documented export schema, contains valid timestamps
+ * and sequential event identifiers, and can be exported to a file.
+ */
 class JsonSerialiserTest {
     private final JsonSerialiser serialiser = new JsonSerialiser();
 
+    /**
+     * Tests that the serialiser produces valid JSON containing
+     * all required fields in the documented report schema.
+     *
+     * <p>Verifies session metadata, activity statistics, compilation
+     * summaries, error frequencies, telemetry events, and timeline entries.
+     */
     @Test
     void producesValidJsonWithTheDocumentedSchema() {
         ReportData data = ExportTestData.populatedService(new MutableClock()).buildReport();
@@ -56,6 +70,10 @@ class JsonSerialiserTest {
         assertEquals("CLASS_CREATED", timeline.get(0).getAsJsonObject().get("type").getAsString());
     }
 
+    /**
+     * Tests that every serialized telemetry event contains a valid
+     * ISO-8601 timestamp and that event identifiers are strictly increasing.
+     */
     @Test
     void everyEventHasAnIsoTimestampAndIdsAreIncreasing() {
         ReportData data = ExportTestData.populatedService(new MutableClock()).buildReport();
@@ -69,6 +87,17 @@ class JsonSerialiserTest {
         }
     }
 
+    /**
+     * Tests that the JSON exporter writes a valid, parseable JSON file
+     * to the specified destination.
+     *
+     * <p>Also verifies that missing parent directories are created,
+     * the exporter reports the correct file extension, and the
+     * exported file uses UTF-8 encoding.
+     *
+     * @param dir temporary directory used for the export test
+     * @throws IOException if an error occurs while writing or reading the file
+     */
     @Test
     void exporterWritesParseableFileAndCreatesDirectories(@TempDir Path dir) throws IOException {
         ReportData data = ExportTestData.populatedService(new MutableClock()).buildReport();

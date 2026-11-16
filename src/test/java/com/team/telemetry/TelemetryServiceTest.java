@@ -14,9 +14,21 @@ import java.time.Duration;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
-/** End-to-end through the facade with no BlueJ: record -> aggregate -> export JSON + PDF. */
+/**
+ * End-to-end through the facade with no BlueJ: record -> aggregate -> export JSON + PDF.
+ *
+ * <p>Tests the {@link TelemetryService} facade, including timestamped report
+ * exports, idempotent session termination, and activity tracking.
+ */
 class TelemetryServiceTest {
 
+    /**
+     * Verifies that exporting a telemetry session creates timestamped JSON
+     * and PDF files containing the expected session information.
+     *
+     * @param dir temporary directory used for the exported files
+     * @throws IOException if exporting or reading the generated files fails
+     */
     @Test
     void exportWritesTimestampedJsonAndPdf(@TempDir Path dir) throws IOException {
         MutableClock clock = new MutableClock();
@@ -36,6 +48,10 @@ class TelemetryServiceTest {
         assertEquals(1, root.getAsJsonObject("session").get("successfulCompilations").getAsInt());
     }
 
+    /**
+     * Verifies that ending a telemetry session multiple times records only
+     * one {@link EventType#SESSION_ENDED} event.
+     */
     @Test
     void endIsIdempotent() {
         TelemetryService service = new TelemetryService(new MutableClock(), "s", Duration.ofSeconds(30));
@@ -47,6 +63,10 @@ class TelemetryServiceTest {
         assertEquals(1, ended);
     }
 
+    /**
+     * Verifies that edits made through the service's edit tracker are
+     * reflected in the activity metrics of the generated report.
+     */
     @Test
     void reportReflectsEditsMadeThroughTheTracker() {
         MutableClock clock = new MutableClock();

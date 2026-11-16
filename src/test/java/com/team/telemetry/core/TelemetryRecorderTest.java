@@ -16,11 +16,25 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-/** Verifies that values handed over by the BlueJ adapters map onto the right internal events. */
+/**
+ * Verifies that values handed over by the BlueJ adapters map onto the right internal events.
+ *
+ * <p>Tests the {@link TelemetryRecorder} functionality, including compilation events,
+ * class state changes, method invocations, project lifecycle events, and session
+ * management. Also verifies that event data is correctly recorded and mapped
+ * to the corresponding internal event types.
+ */
 class TelemetryRecorderTest {
     private InMemoryEventRepository repo;
     private TelemetryRecorder recorder;
 
+    /**
+     * Initializes the test environment before each test.
+     *
+     * <p>Creates an in-memory event repository, subscribes it to an event bus,
+     * and initializes the telemetry recorder with an event factory and
+     * compile error classifier.
+     */
     @BeforeEach
     void setUp() {
         repo = new InMemoryEventRepository();
@@ -29,11 +43,21 @@ class TelemetryRecorderTest {
         recorder = new TelemetryRecorder(new TelemetryEventFactory(new MutableClock()), bus, new CompileErrorClassifier());
     }
 
+    /**
+     * Retrieves the most recently recorded telemetry event.
+     *
+     * @return the last event stored in the repository
+     */
     private TelemetryEvent last() {
         List<TelemetryEvent> all = repo.findAll();
         return all.get(all.size() - 1);
     }
 
+    /**
+     * Tests that compilation error events contain the affected files,
+     * source line, error message, derived compiler error code,
+     * and user-generated status.
+     */
     @Test
     void compileErrorCarriesFilesLineMessageAndDerivedCode() {
         recorder.compileError(List.of("Foo.java"), 12, "cannot find symbol", true);
@@ -47,6 +71,13 @@ class TelemetryRecorderTest {
         assertEquals(true, e.get("userGenerated"));
     }
 
+    /**
+     * Tests that compilation lifecycle callbacks generate the correct
+     * event types for compilation start, warning, success, and failure.
+     *
+     * <p>Also verifies that null file information is represented by
+     * an empty list and that background compilation events are identified.
+     */
     @Test
     void compileLifecycleEventsMapToTheirTypes() {
         recorder.compileStarted(List.of("A.java"), true);
@@ -61,6 +92,13 @@ class TelemetryRecorderTest {
         assertTrue(last().isBackground());
     }
 
+    /**
+     * Tests that the first state change of an unregistered class
+     * generates a class creation event.
+     *
+     * <p>Also verifies that subsequent state changes are recorded
+     * without generating additional creation events.
+     */
     @Test
     void firstStateChangeOfUnknownClassImpliesCreation() {
         recorder.classStateChanged("Dog", false, false);
@@ -70,6 +108,10 @@ class TelemetryRecorderTest {
         assertEquals(2, repo.findByType(EventType.CLASS_STATE_CHANGED).size());
     }
 
+    /**
+     * Tests that classes registered as existing when a project opens
+     * are not incorrectly reported as newly created when their state changes.
+     */
     @Test
     void classesPresentAtProjectOpenAreNotReportedAsCreated() {
         recorder.registerExistingClasses(List.of("Main"));
@@ -77,6 +119,13 @@ class TelemetryRecorderTest {
         assertTrue(repo.findByType(EventType.CLASS_CREATED).isEmpty());
     }
 
+    /**
+     * Tests that renaming and removing classes correctly updates
+     * the recorder's known class information.
+     *
+     * <p>Verifies that renamed classes are not reported as newly created
+     * until they have been removed and subsequently reintroduced.
+     */
     @Test
     void renameAndRemovalUpdateKnownClasses() {
         recorder.registerExistingClasses(List.of("Old"));
@@ -90,6 +139,14 @@ class TelemetryRecorderTest {
         assertEquals(1, repo.findByType(EventType.CLASS_CREATED).size());
     }
 
+    /**
+     * Tests that method invocation exit statuses are mapped to the
+     * appropriate execution event types.
+     *
+     * <p>Verifies handling of normal, exceptional, and terminated
+     * executions, as well as missing method names, unknown exit statuses,
+     * and null exit statuses.
+     */
     @Test
     void invocationExitTypesMapToExecutionEvents() {
         recorder.invocationFinished("Calc", "calc1", "add", "NORMAL_EXIT", List.of("1", "2"), "3");
@@ -112,12 +169,23 @@ class TelemetryRecorderTest {
         assertEquals(EventType.EXECUTION_FINISHED, last().getType());
     }
 
+    /**
+     * Tests that excessively long execution results are truncated
+     * to the configured maximum length, including the truncation indicator.
+     */
     @Test
     void longResultsAreTruncated() {
         recorder.invocationFinished("A", "a", "m", "NORMAL_EXIT", List.of(), "x".repeat(500));
         assertEquals(200 + "...".length(), last().getString("result").length());
     }
 
+    /**
+     * Tests that session, project, edit, and method lifecycle operations
+     * generate the appropriate telemetry events.
+     *
+     * <p>Also verifies that the session identifier and source editing
+     * statistics are correctly included in the recorded event data.
+     */
     @Test
     void sessionProjectEditAndMethodEvents() {
         recorder.sessionStarted("s123");

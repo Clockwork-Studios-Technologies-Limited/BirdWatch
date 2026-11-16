@@ -10,8 +10,22 @@ import com.team.telemetry.support.MutableClock;
 import java.time.Instant;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests for {@link SessionManager} and {@link SessionMetadata}.
+ *
+ * <p>Verifies session metadata creation, duration calculations,
+ * default student identifiers, validation of required timestamps,
+ * and session management using a mutable clock.
+ */
 class SessionTest {
 
+    /**
+     * Tests that session metadata correctly calculates the duration
+     * between its start and end times.
+     *
+     * <p>Also verifies that student information, project details,
+     * compilation statistics, and total event counts are stored correctly.
+     */
     @Test
     void metadataComputesDurationFromStartAndEnd() {
         SessionMetadata m = SessionMetadata.builder()
@@ -28,6 +42,11 @@ class SessionTest {
         assertEquals(9, m.getTotalEvents());
     }
 
+    /**
+     * Tests that negative session durations are clamped to zero
+     * and that a placeholder student identifier is assigned
+     * when no identifier is provided.
+     */
     @Test
     void negativeDurationIsClampedAndPlaceholderIdIsDefault() {
         SessionMetadata m = SessionMetadata.builder()
@@ -36,6 +55,12 @@ class SessionTest {
         assertEquals("STUDENT_ID_PLACEHOLDER", m.getStudentId());
     }
 
+    /**
+     * Tests that session metadata requires both start and end timestamps.
+     *
+     * <p>Verifies that building metadata without either required timestamp
+     * throws a {@link NullPointerException}.
+     */
     @Test
     void metadataRequiresStartAndEnd() {
         assertThrows(NullPointerException.class, () -> SessionMetadata.builder().build());
@@ -43,6 +68,14 @@ class SessionTest {
                 () -> SessionMetadata.builder().startTime(Instant.EPOCH).build());
     }
 
+    /**
+     * Tests that the session manager uses the configured clock
+     * to determine session start times.
+     *
+     * <p>Also verifies placeholder student identifier handling,
+     * project name updates, null project name handling, and
+     * the creation of session metadata using the current clock time.
+     */
     @Test
     void managerUsesClockAndFallsBackToPlaceholderId() {
         MutableClock clock = new MutableClock();

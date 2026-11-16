@@ -11,8 +11,23 @@ import com.team.telemetry.support.MutableClock;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests for {@link TimelineAnalyzer}.
+ *
+ * <p>Verifies that relevant telemetry events are converted into timeline
+ * entries, ordered chronologically, and assigned the correct offsets
+ * relative to the session start time.
+ */
 class TimelineAnalyzerTest {
 
+    /**
+     * Tests that class creation and method definition events are listed
+     * in chronological order.
+     *
+     * <p>Verifies that each timeline entry contains the correct event type,
+     * class name, method name, and offset from the session start.
+     * Irrelevant events are excluded from the timeline.
+     */
     @Test
     void listsClassCreationsAndMethodDefinitionsInTimeOrder() {
         List<TelemetryEvent> events = List.of(
@@ -33,6 +48,10 @@ class TimelineAnalyzerTest {
         assertEquals(40, timeline.get(2).offsetSeconds());
     }
 
+    /**
+     * Tests that events occurring before the session start time
+     * are assigned an offset of zero seconds.
+     */
     @Test
     void eventsBeforeSessionStartHaveZeroOffset() {
         List<TimelineEntry> t = new TimelineAnalyzer().analyze(
@@ -40,6 +59,10 @@ class TimelineAnalyzerTest {
         assertEquals(0, t.get(0).offsetSeconds());
     }
 
+    /**
+     * Tests that an event list containing no relevant timeline events
+     * produces an empty timeline.
+     */
     @Test
     void noRelevantEventsGivesEmptyTimeline() {
         assertTrue(new TimelineAnalyzer().analyze(List.of(at(1, EventType.EDIT)), MutableClock.T0).isEmpty());

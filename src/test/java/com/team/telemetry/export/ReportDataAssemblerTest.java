@@ -1,6 +1,5 @@
 // Jibril contributed this code: Test cases for ReportDataAssembler
 
-
 package com.team.telemetry.export;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -10,8 +9,20 @@ import com.team.telemetry.core.event.EventType;
 import com.team.telemetry.support.MutableClock;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Tests the assembly of telemetry session data into a {@link ReportData}
+ * instance.
+ *
+ * <p>Verifies that session summaries, activity metrics, compilation statistics,
+ * timeline entries, and events are correctly included in the assembled report.
+ */
 class ReportDataAssemblerTest {
 
+    /**
+     * Verifies that a populated telemetry session is assembled into a report
+     * containing the expected summaries, activity metrics, compilation data,
+     * timeline entries, and session events.
+     */
     @Test
     void assemblesSessionSummariesTimelineAndEvents() {
         MutableClock clock = new MutableClock();
@@ -42,6 +53,10 @@ class ReportDataAssemblerTest {
         assertEquals(EventType.SESSION_ENDED, data.getEvents().get(data.getEvents().size() - 1).getType());
     }
 
+    /**
+     * Verifies that building a {@link ReportData} instance without the
+     * required session and summary data throws a {@link NullPointerException}.
+     */
     @Test
     void reportDataBuilderRequiresSessionAndSummaries() {
         assertThrows(NullPointerException.class, () -> ReportData.builder().build());
