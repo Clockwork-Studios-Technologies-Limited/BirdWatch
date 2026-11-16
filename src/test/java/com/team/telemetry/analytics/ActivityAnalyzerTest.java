@@ -13,10 +13,29 @@ import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
+/**
+ * Unit tests for {@link ActivityAnalyzer}.
+ *
+ * <p>Verifies the calculation of active and idle time within a session, including
+ * activity ratios, editing statistics, and productivity metrics. Also tests
+ * boundary conditions, event filtering, chronological ordering, and validation
+ * of idle detection thresholds.
+ *
+ * <p>The analyzer uses a {@link ThresholdIdleStrategy} with a 30-second threshold
+ * to determine whether gaps between activity events are considered active or idle.
+ */
 class ActivityAnalyzerTest {
     private static final Instant START = MutableClock.T0;
     private final ActivityAnalyzer analyzer = new ActivityAnalyzer(new ThresholdIdleStrategy(Duration.ofSeconds(30)));
 
+    /**
+     * Verifies that active and idle durations are calculated correctly from
+     * the gaps between activity events.
+     *
+     * <p>Also verifies that the analyzer correctly calculates the total session
+     * duration, active ratio, edit count, character additions and removals,
+     * and editing productivity rates.
+     */
     @Test
     void sumsActiveAndIdleGapsExactly() {
         List<TelemetryEvent> events = List.of(
@@ -38,6 +57,10 @@ class ActivityAnalyzerTest {
         assertEquals(3 / 0.5, s.editsPerActiveMinute(), 1e-9);
     }
 
+    /**
+     * Verifies that a gap equal to the idle threshold is classified as active
+     * rather than idle.
+     */
     @Test
     void gapExactlyAtThresholdIsStillActive() {
         ActivitySummary s = analyzer.analyze(List.of(at(30, EventType.EDIT)), START, START.plusSeconds(60));
@@ -45,6 +68,13 @@ class ActivityAnalyzerTest {
         assertEquals(0, s.idleMillis());
     }
 
+    /**
+     * Verifies that a session containing no events is classified entirely as
+     * idle when its duration exceeds the configured idle threshold.
+     *
+     * <p>Also ensures that activity-dependent metrics return zero when no
+     * active time is recorded.
+     */
     @Test
     void emptySessionIsEntirelyIdleWhenLongerThanThreshold() {
         ActivitySummary s = analyzer.analyze(List.of(), START, START.plusSeconds(120));
@@ -55,6 +85,10 @@ class ActivityAnalyzerTest {
         assertEquals(0.0, s.editsPerActiveMinute());
     }
 
+    /**
+     * Verifies that a zero-length session produces zero total duration and
+     * a zero active ratio without causing division-by-zero errors.
+     */
     @Test
     void zeroLengthSessionHasZeroRatioWithoutDividingByZero() {
         ActivitySummary s = analyzer.analyze(List.of(), START, START);
@@ -62,12 +96,21 @@ class ActivityAnalyzerTest {
         assertEquals(0.0, s.activeRatio());
     }
 
+
+    /**
+     * Verifies that a session whose end time precedes its start time is
+     * treated as a zero-length session.
+     */
     @Test
     void endBeforeStartIsClampedToZeroLength() {
         ActivitySummary s = analyzer.analyze(List.of(), START, START.minusSeconds(5));
         assertEquals(0, s.totalMillis());
     }
 
+    /**
+     * Verifies that background events and events unrelated to user activity
+     * do not count as activity or interrupt idle periods.
+     */
     @Test
     void backgroundAndNonActivityEventsDoNotBreakIdleGaps() {
         List<TelemetryEvent> events = List.of(
@@ -80,6 +123,11 @@ class ActivityAnalyzerTest {
         assertEquals(60_000, s.idleMillis());
     }
 
+    /**
+     * Verifies that events occurring outside the session time window are
+     * ignored and that the analyzer produces correct results regardless
+     * of the order in which events are supplied.
+     */
     @Test
     void eventsOutsideTheSessionWindowAreIgnoredAndOrderDoesNotMatter() {
         List<TelemetryEvent> events = List.of(
@@ -89,6 +137,10 @@ class ActivityAnalyzerTest {
         assertEquals(0, s.idleMillis());
     }
 
+    /**
+     * Verifies that {@link ThresholdIdleStrategy} rejects invalid threshold
+     * values, including zero, negative durations, and null.
+     */
     @Test
     void thresholdMustBePositive() {
         assertThrows(IllegalArgumentException.class, () -> new ThresholdIdleStrategy(Duration.ZERO));
